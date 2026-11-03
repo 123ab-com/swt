@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.studentscore.mapper.StudentMapper">
+
+    <sql id="columns">
+        s.id, s.student_no, s.name, s.gender, s.birth_date, s.phone, s.class_id, s.status, s.create_time
+    </sql>
+
+    <select id="selectPage" resultType="Student">
+        SELECT <include refid="columns"/>, ci.class_name
+        FROM student s
+        LEFT JOIN class_info ci ON s.class_id = ci.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (s.student_no LIKE CONCAT('%', #{keyword}, '%') OR s.name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="classId != null">AND s.class_id = #{classId}</if>
+            <if test="gender != null and gender != ''">AND s.gender = #{gender}</if>
+            <if test="status != null">AND s.status = #{status}</if>
+        </where>
+        ORDER BY s.student_no ASC
+    </select>
+
+    <select id="selectByClassId" resultType="Student">
+        SELECT <include refid="columns"/>, ci.class_name
+        FROM student s
+        LEFT JOIN class_info ci ON s.class_id = ci.id
+        WHERE s.class_id = #{classId}
+        ORDER BY s.student_no ASC
+    </select>
+
+    <select id="selectAll" resultType="Student">
+        SELECT <include refid="columns"/>, ci.class_name
+        FROM student s
+        LEFT JOIN class_info ci ON s.class_id = ci.id
+        ORDER BY s.student_no ASC
+    </select>
+
+    <select id="selectByStudentNo" resultType="Student">
+        SELECT <include refid="columns"/>, ci.class_name
+        FROM student s
+        LEFT JOIN class_info ci ON s.class_id = ci.id
+        WHERE s.student_no = #{studentNo}
+    </select>
+
+    <select id="selectById" resultType="Student">
+        SELECT <include refid="columns"/>, ci.class_name
+        FROM student s
+        LEFT JOIN class_info ci ON s.class_id = ci.id
+        WHERE s.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="Student" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO student (student_no, name, gender, birth_date, phone, class_id, status, create_time)
+        VALUES (#{studentNo}, #{name}, #{gender}, #{birthDate}, #{phone}, #{classId}, #{status}, NOW())
+    </insert>
+
+    <update id="update" parameterType="Student">
+        UPDATE student
+        <set>
+            <if test="studentNo != null">student_no = #{studentNo},</if>
+            <if test="name != null">name = #{name},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="birthDate != null">birth_date = #{birthDate},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="classId != null">class_id = #{classId},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM student WHERE id = #{id}
+    </delete>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*) FROM student
+    </select>
+
+    <select id="countByClassId" resultType="int">
+        SELECT COUNT(*) FROM student WHERE class_id = #{classId}
+    </select>
+
+    <select id="countByStudentNo" resultType="int">
+        SELECT COUNT(*) FROM student WHERE student_no = #{studentNo}
+        <if test="excludeId != null">AND id != #{excludeId}</if>
+    </select>
+</mapper>

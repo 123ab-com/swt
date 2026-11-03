@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.studentscore.mapper.ClassInfoMapper">
+
+    <sql id="baseColumns">
+        ci.id, ci.class_name, ci.grade, ci.major, ci.head_teacher_id, ci.remark
+    </sql>
+
+    <select id="selectAll" resultType="ClassInfo">
+        SELECT <include refid="baseColumns"/>, t.name AS head_teacher_name,
+               (SELECT COUNT(*) FROM student s WHERE s.class_id = ci.id) AS student_count
+        FROM class_info ci
+        LEFT JOIN teacher t ON ci.head_teacher_id = t.id
+        ORDER BY ci.id ASC
+    </select>
+
+    <select id="selectById" resultType="ClassInfo">
+        SELECT <include refid="baseColumns"/>, t.name AS head_teacher_name,
+               (SELECT COUNT(*) FROM student s WHERE s.class_id = ci.id) AS student_count
+        FROM class_info ci
+        LEFT JOIN teacher t ON ci.head_teacher_id = t.id
+        WHERE ci.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="ClassInfo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO class_info (class_name, grade, major, head_teacher_id, remark)
+        VALUES (#{className}, #{grade}, #{major}, #{headTeacherId}, #{remark})
+    </insert>
+
+    <update id="update" parameterType="ClassInfo">
+        UPDATE class_info
+        <set>
+            <if test="className != null">class_name = #{className},</if>
+            <if test="grade != null">grade = #{grade},</if>
+            <if test="major != null">major = #{major},</if>
+            <if test="headTeacherId != null">head_teacher_id = #{headTeacherId},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM class_info WHERE id = #{id}
+    </delete>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*) FROM class_info
+    </select>
+
+    <select id="countByClassName" resultType="int">
+        SELECT COUNT(*) FROM class_info WHERE class_name = #{className}
+        <if test="excludeId != null">AND id != #{excludeId}</if>
+    </select>
+</mapper>

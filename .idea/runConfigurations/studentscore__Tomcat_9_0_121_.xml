@@ -1,0 +1,23 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="studentscore (Tomcat 9.0.121)" type="#com.intellij.j2ee.web.tomcat.TomcatRunConfigurationFactoryType" factoryName="Local" APPLICATION_SERVER_NAME="Tomcat 9.0.121" nameIsGenerated="false">
+    <option name="UPDATING_POLICY" value="restart-server" />
+    <deployment>
+      <artifact name="studentscore:war exploded">
+        <settings>
+          <option name="CONTEXT_PATH" value="/studentscore" />
+        </settings>
+      </artifact>
+    </deployment>
+    <server-settings>
+      <option name="BASE_DIRECTORY_NAME" value="studentscore" />
+    </server-settings>
+    <predefined_log_file enabled="true" id="Tomcat" />
+    <predefined_log_file enabled="true" id="Tomcat Catalina" />
+    <predefined_log_file enabled="true" id="Tomcat Manager" />
+    <predefined_log_file enabled="true" id="Tomcat Host Manager" />
+    <predefined_log_file enabled="true" id="Tomcat Localhost Access" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.5//EN"
+        "http://struts.apache.org/dtds/struts-2.5.dtd">
+
+<struts>
+    <!-- 基本常量 -->
+    <constant name="struts.i18n.encoding" value="UTF-8"/>
+    <constant name="struts.devMode" value="false"/>
+    <constant name="struts.action.extension" value="action"/>
+    <constant name="struts.ui.theme" value="simple"/>
+    <constant name="struts.multipart.maxSize" value="10485760"/>
+
+    <!-- Action 交由 Spring 容器创建（struts2-spring-plugin） -->
+    <constant name="struts.objectFactory" value="spring"/>
+    <constant name="struts.objectFactory.spring.autoWire" value="type"/>
+
+    <!-- 父包：登录校验拦截器 + 全局结果 -->
+    <!-- 注意：package 子元素的顺序必须符合 DTD
+         (result-types?, interceptors?, default-interceptor-ref?, default-action-ref?,
+          default-class-ref?, global-results?, ... action*)，顺序错了会启动失败 -->
+    <package name="ssm-default" extends="struts-default">
+        <interceptors>
+            <interceptor name="loginCheck"
+                         class="com.studentscore.struts.interceptor.StrutsLoginInterceptor"/>
+            <interceptor-stack name="ssmStack">
+                <interceptor-ref name="defaultStack"/>
+                <interceptor-ref name="loginCheck"/>
+            </interceptor-stack>
+        </interceptors>
+        <default-interceptor-ref name="ssmStack"/>
+
+        <global-results>
+            <result name="login" type="redirect">/login</result>
+            <result name="error" type="dispatcher">/WEB-INF/views/error/500.jsp</result>
+            <!-- 参数校验 / 类型转换失败时的兜底 -->
+            <result name="input" type="dispatcher">/WEB-INF/views/error/500.jsp</result>
+        </global-results>
+    </package>
+
+    <!-- Struts2 演示首页 -->
+    <package name="struts-home" namespace="/struts" extends="ssm-default">
+        <default-interceptor-ref name="ssmStack"/>
+        <action name="index">
+            <result name="success">/WEB-INF/views/struts/index.jsp</result>
+        </action>
+    </package>
+
+    <!-- 学生管理（Struts2 版） -->
+    <package name="struts-student" namespace="/student" extends="ssm-default">
+        <default-interceptor-ref name="ssmStack"/>
+
+        <action name="list" class="studentAction" method="list">
+            <result name="success">/WEB-INF/views/struts/student-list.jsp</result>
+        </action>
+
+        <action name="input" class="studentAction" method="input">
+            <result name="success">/WEB-INF/views/struts/student-form.jsp</result>
+        </action>
+
+        <action name="save" class="studentAction" method="save">
+            <result name="input">/WEB-INF/views/struts/student-form.jsp</result>
+            <result name="success" type="redirectAction">
+                <param name="actionName">list</param>
+            </result>
+        </action>
+
+        <action name="delete" class="studentAction" method="delete">
+            <result name="success" type="redirectAction">
+                <param name="actionName">list</param>
+            </result>
+        </action>
+    </package>
+
+    <!-- 成绩查询（Struts2 版） -->
+    <package name="struts-score" namespace="/score" extends="ssm-default">
+        <default-interceptor-ref name="ssmStack"/>
+
+        <action name="list" class="scoreAction" method="list">
+            <result name="success">/WEB-INF/views/struts/score-list.jsp</result>
+        </action>
+    </package>
+</struts>

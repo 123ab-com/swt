@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.studentscore.mapper.SysLogMapper">
+
+    <sql id="baseColumns">
+        id, user_id, username, module, operation, ip, create_time
+    </sql>
+
+    <insert id="insert" parameterType="SysLog">
+        INSERT INTO sys_log (user_id, username, module, operation, ip, create_time)
+        VALUES (#{userId}, #{username}, #{module}, #{operation}, #{ip}, NOW())
+    </insert>
+
+    <select id="selectPage" resultType="SysLog">
+        SELECT <include refid="baseColumns"/>
+        FROM sys_log
+        <where>
+            <if test="username != null and username != ''">AND username LIKE CONCAT('%', #{username}, '%')</if>
+            <if test="module != null and module != ''">AND module = #{module}</if>
+        </where>
+        ORDER BY id DESC
+    </select>
+</mapper>

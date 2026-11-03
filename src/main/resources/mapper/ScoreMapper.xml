@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.studentscore.mapper.ScoreMapper">
+
+    <sql id="voColumns">
+        sc.id, sc.student_id, s.student_no, s.name AS student_name, ci.class_name,
+        sc.course_id, c.course_name, sc.usual_score, sc.exam_score, sc.total_score, sc.semester
+    </sql>
+
+    <!-- 列表与汇总共用的查询条件 -->
+    <sql id="listWhere">
+        <where>
+            <if test="classId != null">AND s.class_id = #{classId}</if>
+            <if test="courseId != null">AND sc.course_id = #{courseId}</if>
+            <if test="semester != null and semester != ''">AND sc.semester = #{semester}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (s.student_no LIKE CONCAT('%', #{keyword}, '%') OR s.name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectScoreList" resultType="com.studentscore.vo.ScoreVO">
+        SELECT <include refid="voColumns"/>
+        FROM score sc
+        JOIN student s ON sc.student_id = s.id
+        LEFT JOIN class_info ci ON s.class_id = ci.id
+        JOIN course c ON sc.course_id = c.id
+        <include refid="listWhere"/>
+        ORDER BY s.student_no ASC, c.id ASC
+    </select>
+
+    <select id="summary" resultType="com.studentscore.vo.ScoreSummary">
+        SELECT ROUND(AVG(sc.total_score), 1) AS avgScore,
+               MAX(sc.total_score) AS maxScore,
+               MIN(sc.total_score) AS minScore,
+               SUM(CASE WHEN sc.total_score >= 60 THEN 1 ELSE 0 END) AS passCount,
+               COUNT(sc.id) AS totalCount
+        FROM score sc
+        JOIN student s ON sc.student_id = s.id
+        <include refid="listWhere"/>
+    </select>
+
+    <select id="selectByStudentId" resultType="com.studentscore.vo.ScoreVO">
+        SELECT <include refid="voColumns"/>
+        FROM score sc
+        JOIN student s ON sc.student_id = s.id
+        LEFT JOIN class_info ci ON s.class_id = ci.id
+        JOIN course c ON sc.course_id = c.id
+        WHERE sc.student_id = #{studentId}
+        <if test="semester != null and semester != ''">AND sc.semester = #{semester}</if>
+        ORDER BY sc.semester DESC, c.id ASC
+    </select>
+
+    <select id="avgByStudent" resultType="java.math.BigDecimal">
+        SELECT ROUND(AVG(total_score), 1)
+        FROM score
+        WHERE student_id = #{studentId} AND total_score IS NOT NULL
+        <if test="semester != null and semester != ''">AND semester = #{semester}</if>
+    </select>
+
+    <!-- 学分加权平均分：Σ(总评×学分) / Σ学分 -->
+    <select id="weightedAvgByStudent" resultType="java.math.BigDecimal">
+        SELECT ROUND(SUM(sc.total_score * c.credit) / NULLIF(SUM(c.credit), 0), 1)
+        FROM score sc
+        JOIN course c ON sc.course_id = c.id
+        WHERE sc.student_id = #{studentId} AND sc.total_score IS NOT NULL
+        <if test="semester != null and semester != ''">AND sc.semester = #{semester}</if>
+    </select>
+
+    <!-- 唯一键 (student_id, course_id, semester) 冲突时更新 -->
+    <insert id="save" parameterType="Score">
+        INSERT INTO score (student_id, course_id, usual_score, exam_score, total_score, semester)
+        VALUES (#{studentId}, #{courseId}, #{usualScore}, #{examScore}, #{totalScore}, #{semester})
+        ON DUPLICATE KEY UPDATE
+            usual_score = VALUES(usual_score),
+            exam_score = VALUES(exam_score),
+            total_score = VALUES(total_score)
+    </insert>
+
+    <delete id="deleteById">
+        DELETE FROM score WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteByStudentId">
+        DELETE FROM score WHERE student_id = #{studentId}
+    </delete>
+
+    <delete id="deleteByCourseId">
+        DELETE FROM score WHERE course_id = #{courseId}
+    </delete>
+
+    <select id="countByCourse" resultType="int">
+        SELECT COUNT(*) FROM score WHERE course_id = #{courseId}
+    </select>
+
+    <select id="countByStudent" resultType="int">
+        SELECT COUNT(*) FROM score WHERE student_id = #{studentId}
+    </select>
+
+    <select id="statByStudent" resultType="com.studentscore.vo.StudentStatVO">
+        SELECT s.id AS studentId, s.student_no AS studentNo, s.name AS studentName,
+               COUNT(sc.id) AS courseCount,
+               ROUND(AVG(sc.total_score), 1) AS avgScore,
+               MAX(sc.total_score) AS maxScore,
+               MIN(sc.total_score) AS minScore,
+               ROUND(SUM(sc.total_score), 1) AS sumScore,
+               SUM(CASE WHEN sc.total_score >= 60 THEN 1 ELSE 0 END) AS passCount
+        FROM student s
+        LEFT JOIN score sc ON sc.student_id = s.id
+            <if test="courseId != null">AND sc.course_id = #{courseId}</if>
+            <if test="semester != null and semester != ''">AND sc.semester = #{semester}</if>
+        <where>
+            <if test="classId != null">AND s.class_id = #{classId}</if>
+        </where>
+        GROUP BY s.id, s.student_no, s.name
+        ORDER BY avgScore DESC
+    </select>
+
+    <select id="statByCourse" resultType="com.studentscore.vo.CourseStatVO">
+        SELECT c.id AS courseId, c.course_name AS courseName, t.name AS teacherName,
+               COUNT(sc.id) AS studentCount,
+               ROUND(AVG(sc.total_score), 1) AS avgScore,
+               MAX(sc.total_score) AS maxScore,
+               MIN(sc.total_score) AS minScore,
+               ROUND(SUM(CASE WHEN sc.total_score >= 60 THEN 1 ELSE 0 END) * 100
+                     / NULLIF(COUNT(sc.id), 0), 1) AS passRate,
+               ROUND(SUM(CASE WHEN sc.total_score >= 90 THEN 1 ELSE 0 END) * 100
+                     / NULLIF(COUNT(sc.id), 0), 1) AS excellentRate
+        FROM score sc
+        JOIN student s ON sc.student_id = s.id
+        JOIN course c ON sc.course_id = c.id
+        LEFT JOIN teacher t ON c.teacher_id = t.id
+        <where>
+            <if test="classId != null">AND s.class_id = #{classId}</if>
+            <if test="semester != null and semester != ''">AND sc.semester = #{semester}</if>
+        </where>
+        GROUP BY c.id, c.course_name, t.name
+        ORDER BY c.id ASC
+    </select>
+
+    <select id="distribution" resultType="java.util.Map">
+        SELECT CASE
+                   WHEN sc.total_score >= 90 THEN '优秀(90-100)'
+                   WHEN sc.total_score >= 80 THEN '良好(80-89)'
+                   WHEN sc.total_score >= 70 THEN '中等(70-79)'
+                   WHEN sc.total_score >= 60 THEN '及格(60-69)'
+                   ELSE '不及格(0-59)'
+               END AS segment,
+               COUNT(*) AS cnt
+        FROM score sc
+        JOIN student s ON sc.student_id = s.id
+        <where>
+            sc.total_score IS NOT NULL
+            <if test="classId != null">AND s.class_id = #{classId}</if>
+            <if test="courseId != null">AND sc.course_id = #{courseId}</if>
+            <if test="semester != null and semester != ''">AND sc.semester = #{semester}</if>
+        </where>
+        GROUP BY segment
+        ORDER BY MIN(sc.total_score) ASC
+    </select>
+
+    <select id="avgTotal" resultType="java.math.BigDecimal">
+        SELECT ROUND(AVG(total_score), 1) FROM score
+    </select>
+
+    <select id="passRate" resultType="java.math.BigDecimal">
+        SELECT ROUND(SUM(CASE WHEN total_score >= 60 THEN 1 ELSE 0 END) * 100 / NULLIF(COUNT(*), 0), 1)
+        FROM score
+    </select>
+</mapper>

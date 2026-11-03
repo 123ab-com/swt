@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.studentscore.mapper.TeacherMapper">
+
+    <select id="selectAll" resultType="Teacher">
+        SELECT id, teacher_no, name, title, phone FROM teacher ORDER BY id ASC
+    </select>
+
+    <select id="selectById" resultType="Teacher">
+        SELECT id, teacher_no, name, title, phone FROM teacher WHERE id = #{id}
+    </select>
+</mapper>
